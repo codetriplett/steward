@@ -1,0 +1,22 @@
+steward('path.to.data', [
+	'object', [
+		'parent.child',
+		'other'
+	],
+	'value'
+], {
+	str: 'abc',
+	num: 123,
+	one: true,
+	two: true
+}).then(({
+	object: {
+		parent: { child },
+		other
+	},
+	value
+}) => {
+	// use data
+});
+
+/path/to/data?str=abc&num=123&*=num*one*two&.=object.*parent.child*other*.*value

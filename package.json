@@ -1,0 +1,49 @@
+{
+	"name": "@triplett/steward",
+	"version": "1.0.0",
+	"description": "A server library with simple routing and optimized data requests.",
+	"main": "lib/steward.js",
+	"scripts": {
+		"test": "jest --watch --runInBand",
+		"build": "rimraf dist lib && grunt",
+		"start": "node index.js"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/codetriplett/steward.git"
+	},
+	"files": [
+		"lib",
+		"dist"
+	],
+	"keywords": [
+		"server",
+		"routing",
+		"cache"
+	],
+	"author": "triplett",
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/codetriplett/steward/issues"
+	},
+	"homepage": "https://github.com/codetriplett/steward#readme",
+	"jest": {
+		"testURL": "http://localhost",
+		"testEnvironment": "node"
+	},
+	"devDependencies": {
+		"@babel/cli": "^7.7.0",
+		"@babel/core": "^7.7.2",
+		"@babel/preset-env": "^7.7.1",
+		"@babel/preset-react": "^7.7.0",
+		"grunt": "^1.0.4",
+		"grunt-babel": "^8.0.0",
+		"grunt-cli": "^1.3.2",
+		"grunt-contrib-clean": "^2.0.0",
+		"grunt-contrib-concat": "^1.0.1",
+		"grunt-contrib-uglify": "^4.0.1",
+		"grunt-string-replace": "^1.3.1",
+		"jest": "^24.9.0",
+		"rimraf": "^3.0.0"
+	}
+}
