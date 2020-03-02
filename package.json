@@ -1,7 +1,7 @@
 {
 	"name": "@triplett/steward",
 	"version": "1.0.0",
-	"description": "A server library with simple routing and optimized data requests.",
+	"description": "A collection of libraries for frontend development.",
 	"main": "lib/steward.js",
 	"scripts": {
 		"test": "jest --watch --runInBand",
@@ -29,7 +29,8 @@
 	"homepage": "https://github.com/codetriplett/steward#readme",
 	"jest": {
 		"testURL": "http://localhost",
-		"testEnvironment": "node"
+		"testEnvironment": "node",
+		"testRegex": "/__tests__/.*\\.test\\.js$"
 	},
 	"devDependencies": {
 		"@babel/cli": "^7.7.0",

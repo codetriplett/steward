@@ -1,6 +1,11 @@
-export default function (...parameters) {
-	// group calls by sets of string, array, object and run through promise all
-	// filter out data from request that has already been cached
-	// cache response data and merge pre cached data in before passing it on
-	// if more than one set was requested, return an array of the results
+import { server } from './server';
+import { gather } from './gather';
+import { render } from './render';
+
+export default function steward (...parameters) {
+	switch (typeof parameters[0]) {
+		case 'number': return server(...parameters);
+		case 'string': return gather(...parameters);
+		case 'object': return render(...parameters);
+	}
 }
