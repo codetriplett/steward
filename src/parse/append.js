@@ -1,44 +1,62 @@
-export function append (expression, value, interpret, element) {
+export function append (expression, value, complete, element, closing) {
 	if (!element) {
-		if (interpret !== undefined) {
-			value = value.replace(/\s+/g, ' ');
+		value = value.replace(/\s+/g, ' ');
 
-			if (!expression.length) {
-				value = value.replace(/^ /, '');
-			}
-			
-			if (interpret) {
-				value = value.replace(/ $/, '');
-			}
+		if (!expression.length) {
+			value = value.replace(/^ /, '');
+		}
+		
+		if (complete) {
+			value = value.replace(/ $/, '');
 		}
 
-		expression.push(value);
-	} else if (interpret === undefined) {
-		expression[expression.length - 1].push(value);
-	} else if (/\S/.test(value)) {
-		const values = value.trim().split(/\s+(?!=)/);
-
-		if (element.length === 1) {
-			element.push(values[0].endsWith('=') ? '' : values.shift());
+		if (value) {
+			expression.push(value);
 		}
 
-		if (values.length) {
-			const attributes = element[element.length - 2];
-			
-			if (interpret && !values[values.length - 1].endsWith('=')) {
-				element.push({}, values.pop());
+		return expression;
+	}
+
+	const values = value.replace(/\s*=\s*/g, '= ').trim().split(/\s+/);
+	const entries = [];
+	let attributes = element[element.length - (closing ? 1 : 2)];
+
+	if (typeof attributes !== 'object') {
+		const tag = values[0].endsWith('=') ? '' : values.shift();
+
+		attributes = { '': expression };
+		entries.push(attributes, tag);
+	}
+
+	if (values.length && values[0]) {
+		let tag;
+		
+		if (!complete && !values[values.length - 1].endsWith('=')) {
+			tag = values.pop();
+		}
+
+		values.forEach(value => {
+			const key = value.replace('=', '');
+
+			if (key) {
+				attributes[key] = expression = [];
+			} else {
+				expression.push(null);
 			}
+		});
 
-			values.forEach(value => {
-				expression = [[]];
-
-				if (value.endsWith('=')) {
-					attributes[value.slice(0, -1).trim()] = expression;
-				} else {
-					attributes[value] = [[]];
-				}
-			});
+		if (tag) {
+			expression = [];
+			entries.push({ '': expression }, tag);
 		}
+	}
+
+	if (entries.length) {
+		if (closing) {
+			entries.push(...entries.reverse().splice(0, 2));
+		}
+
+		element.push(...entries);
 	}
 
 	return expression;

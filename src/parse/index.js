@@ -1,14 +1,20 @@
+import { append } from './append';
+import { traverse } from './traverse';
+
 const patterns = {
-	'"': /["]|$/,
 	'{': /[}]|$/,
+	'"': /["]|$/,
+	'\'': /[']|$/,
 	'<': /["{/>]|$/,
-	'/': /[>]|$/,
+	'/': /["{>]|$/,
 	'>': /[{<]|$/
 };
 
 export function parse (markup) {
-	let previous = '>';
+	let stage = '>';
+	let previous = stage;
 	let expression = [];
+	let closing = false;
 	let element;
 
 	const stack = [[expression]];
@@ -17,61 +23,66 @@ export function parse (markup) {
 		const index = markup.search(patterns[previous]);
 		let value = markup.slice(0, index);
 		let symbol = markup[index];
-		let interpret;
+		let complete;
 
 		switch (symbol) {
 			case '}':
 				value = value.trim().split(/\s+/);
 				break;
 			case '"':
-				interpret = previous !== symbol || interpret;
+			case '\'':
+				if (previous !== symbol) {
+					complete = false;
+				}
+
+				break;
+			case '<':
+			case '/':
+			case '>':
+			case undefined:
+				stage = symbol;
+				complete = true;
+
 				break;
 			default:
-				interpret = symbol === '<';
+				complete = false;
 				break;
 		}
 
-		expression = append(expression, value, interpret, element);
+		if (complete === undefined) {
+			expression.push(value);
+			previous = stage;
+		} else {
+			expression = append(expression, value, complete, element, closing);
+			previous = symbol;
+		}
 
-		// put this behind traverse function
 		switch (symbol) {
 			case '<':
-				element = [{}];
-				break;
 			case '/':
-				if (previous !== '<') {
-					const children = stack.shift();
-
-					if (stack.length) {
-						stack.push();
-					}
-				}
-				
-				break;
 			case '>':
-				if (previous === '/') {
-					value = value.trim();
+				expression = [];
+				closing = symbol === '/';
 
-					if (value) {
-						element[1] += `/${value.split(' ')[0]}`;
+				if (!closing) {
+					element = traverse(stack, element);
+
+					if (!element) {
+						stack[0].push(expression);
 					}
-				} else {
-					stack[0].push(element);
-					stack.unshift([expression]);
 				}
 
-				element = undefined;
 				break;
-		}
-
-		if (closed) {
-			previous = element ? '<' : '>';
-		} else {
-			previous = symbol;
 		}
 
 		markup = markup.slice(index + 1);
 	}
 
-	return stack.pop();
+	const children = stack.pop();
+
+	if (!children[children.length - 1].length) {
+		children.pop();
+	}
+
+	return children;
 }

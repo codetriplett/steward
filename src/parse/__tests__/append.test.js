@@ -1,108 +1,704 @@
 import { append } from '../append';
 
 describe('append', () => {
-	describe('text', () => {
-		let expression;
+	let expression;
+	let complete;
+	let element;
+	let closing;
+	let test;
 
+	beforeEach(() => {
+		expression = [];
+		complete = undefined;
+		element = undefined;
+		closing = undefined;
+
+		test = (value, expected, expectedElement, callback) => {
+			const copy = JSON.parse(JSON.stringify(expression));
+			const actual = append(expression, value, complete, element, closing);
+
+			if (complete === undefined) {
+				expect(actual).toEqual([...copy, value]);
+			} else {
+				expect(actual).toEqual(expected);
+				expect(element).toEqual(expectedElement);
+			}
+
+			if (callback) {
+				callback(actual);
+			} else {
+				expect(actual).toBe(expression);
+			}
+		};
+	});
+
+	describe('value', () => {
+		describe('beginning', () => {
+			beforeEach(() => {
+				complete = false;
+			});
+
+			it('empty', () => {
+				test(' \n ', []);
+			});
+
+			it('value', () => {
+				test(' \n one \n ', ['one ']);
+			});
+		});
+
+		describe('middle', () => {
+			beforeEach(() => {
+				expression = ['one'];
+				complete = false;
+			});
+
+			it('empty', () => {
+				test(' \n ', ['one', ' ']);
+			});
+
+			it('value', () => {
+				test(' \n two \n ', ['one', ' two ']);
+			});
+		});
+
+		describe('end', () => {
+			beforeEach(() => {
+				expression = ['one'];
+				complete = true;
+			});
+
+			it('empty', () => {
+				test(' \n ', ['one']);
+			});
+
+			it('value', () => {
+				test(' \n two \n ', ['one', ' two']);
+			});
+		});
+
+		describe('only', () => {
+			beforeEach(() => {
+				complete = true;
+			});
+
+			it('empty', () => {
+				test(' \n ', []);
+			});
+
+			it('value', () => {
+				test(' \n one \n ', ['one']);
+			});
+		});
+	});
+	
+	describe('open', () => {
 		beforeEach(() => {
-			expression = [];
+			element = [];
+			closing = false;
 		});
 
-		it('first value', () => {
-			const actual = append(expression, '\n\t  value  \t\n', false);
+		describe('beginning', () => {
+			beforeEach(() => {
+				complete = false;
+			});
 
-			expect(expression).toEqual(['value ']);
-			expect(actual).toBe(expression);
+			it('empty', () => {
+				test(' \n ', [], [{
+					'': []
+				}, ''], actual => {
+					expect(actual).toBe(expression);
+					expect(actual).toBe(element[0]['']);
+				});
+			});
+
+			it('one', () => {
+				test('one', [], [{
+					'': []
+				}, 'one'], actual => {
+					expect(actual).toBe(expression);
+					expect(actual).toBe(element[0]['']);
+				});
+			});
+
+			it('one=', () => {
+				test('one=', [], [{
+					'': [],
+					one: []
+				}, ''], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[0].one);
+				});
+			});
+
+			it('=', () => {
+				test('=', [null], [{
+					'': [null]
+				}, ''], actual => {
+					expect(actual).toBe(expression);
+					expect(actual).toBe(element[0]['']);
+				});
+			});
+			
+			it('one two', () => {
+				test('one \n two', [], [{
+					'': []
+				}, 'one', {
+					'': []
+				}, 'two'], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[2]['']);
+				});
+			});
+			
+			it('one two=', () => {
+				test('one \n two=', [], [{
+					'': [],
+					two: []
+				}, 'one'], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[0].two);
+				});
+			});
+			
+			it('one =', () => {
+				test('one \n =', [], [{
+					'': [],
+					one: []
+				}, ''], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[0].one);
+				});
+			});
+			
+			it('one= two', () => {
+				test('one= \n two', [], [{
+					'': [],
+					one: []
+				}, '', {
+					'': []
+				}, 'two'], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[2]['']);
+				});
+			});
+			
+			it('one= two=', () => {
+				test('one= \n two=', [], [{
+					'': [],
+					one: [],
+					two: []
+				}, ''], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[0].two);
+				});
+			});
+			
+			it('one= =', () => {
+				test('one= \n =', [null], [{
+					'': [],
+					one: [null]
+				}, ''], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[0].one);
+				});
+			});
+			
+			it('= two', () => {
+				test('= \n two', [], [{
+					'': [null]
+				}, '', {
+					'': []
+				}, 'two'], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[2]['']);
+				});
+			});
+			
+			it('= two=', () => {
+				test('= \n two=', [], [{
+					'': [null],
+					two: []
+				}, ''], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[0].two);
+				});
+			});
+			
+			it('= =', () => {
+				test('= \n =', [null, null], [{
+					'': [null, null]
+				}, ''], actual => {
+					expect(actual).toBe(expression);
+					expect(actual).toBe(element[0]['']);
+				});
+			});
 		});
 
-		it('second value', () => {
-			expression = ['value'];
-			const actual = append(expression, '\n\t  other\nvalue  \t\n', false);
+		describe('middle', () => {
+			beforeEach(() => {
+				complete = false;
+				element = [{ '': expression }, 'tag'];
+			});
 
-			expect(expression).toEqual(['value', ' other value ']);
-			expect(actual).toBe(expression);
+			it('empty', () => {
+				test(' \n ', [], [{
+					'': []
+				}, 'tag'], actual => {
+					expect(actual).toBe(expression);
+					expect(actual).toBe(element[0]['']);
+				});
+			});
+
+			it('one', () => {
+				test('one', [], [{
+					'': []
+				}, 'tag', {
+					'': []
+				}, 'one'], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[2]['']);
+				});
+			});
+			
+			it('one two', () => {
+				test('one \n two', [], [{
+					'': [],
+					one: []
+				}, 'tag', {
+					'': []
+				}, 'two'], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[2]['']);
+				});
+			});
+			
+			it('one two=', () => {
+				test('one \n two=', [], [{
+					'': [],
+					one: [],
+					two: []
+				}, 'tag'], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[0].two);
+				});
+			});
 		});
 
-		it('last value', () => {
-			expression = ['value'];
-			const actual = append(expression, '\n\t  other  \t\n', true);
+		describe('end', () => {
+			beforeEach(() => {
+				complete = true;
+				element = [{ '': expression }, 'tag'];
+			});
 
-			expect(expression).toEqual(['value', ' other']);
-			expect(actual).toBe(expression);
+			it('one', () => {
+				test('one', [], [{
+					'': [],
+					one: []
+				}, 'tag'], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[0].one);
+				});
+			});
+			
+			it('one two', () => {
+				test('one \n two', [], [{
+					'': [],
+					one: [],
+					two: []
+				}, 'tag'], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[0].two);
+				});
+			});
+			
+			it('one= two', () => {
+				test('one= \n two', [], [{
+					'': [],
+					one: [],
+					two: []
+				}, 'tag'], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[0].two);
+				});
+			});
+			
+			it('= two', () => {
+				test('= \n two', [], [{
+					'': [null],
+					two: []
+				}, 'tag'], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[0].two);
+				});
+			});
 		});
 
-		it('only value', () => {
-			const actual = append(expression, '\n\t  value  \t\n', true);
+		describe('only', () => {
+			beforeEach(() => {
+				complete = true;
+			});
 
-			expect(expression).toEqual(['value']);
-			expect(actual).toBe(expression);
-		});
+			it('one two', () => {
+				test('one \n two', [], [{
+					'': [],
+					two: []
+				}, 'one'], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[0].two);
+				});
+			});
 
-		it('does not modify value', () => {
-			const actual = append(expression, '\n\t  value  \t\n');
+			it('one= two', () => {
+				test('one= \n two', [], [{
+					'': [],
+					one: [],
+					two: []
+				}, ''], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[0].two);
+				});
+			});
 
-			expect(expression).toEqual(['\n\t  value  \t\n']);
-			expect(actual).toBe(expression);
+			it('= two', () => {
+				test('= \n two', [], [{
+					'': [null],
+					two: []
+				}, ''], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[0].two);
+				});
+			});
 		});
 	});
 
-	describe('element', () => {
-		let expression;
-		let element;
-
+	describe('close', () => {
 		beforeEach(() => {
-			expression = [[]];
-			element = [{}];
+			element = [];
+			closing = true;
 		});
 
-		it('does not modify value even with element', () => {
-			const actual = append(expression, '  value  ', undefined, element);
-	
-			expect(expression).toEqual([['  value  ']]);
-			expect(actual).toBe(expression);
+		describe('beginning', () => {
+			beforeEach(() => {
+				complete = false;
+				element = [{ '': [] }, 'tag'];
+			});
+
+			it('empty', () => {
+				test(' \n ', [], [{
+					'': []
+				}, 'tag', '', {
+					'': []
+				}], actual => {
+					expect(actual).toBe(expression);
+					expect(actual).toBe(element[3]['']);
+				});
+			});
+
+			it('one', () => {
+				test('one', [], [{
+					'': []
+				}, 'tag', 'one', {
+					'': []
+				}], actual => {
+					expect(actual).toBe(expression);
+					expect(actual).toBe(element[3]['']);
+				});
+			});
+
+			it('one=', () => {
+				test('one=', [], [{
+					'': []
+				}, 'tag', '', {
+					'': [],
+					one: []
+				}], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[3].one);
+				});
+			});
+
+			it('=', () => {
+				test('=', [null], [{
+					'': []
+				}, 'tag', '', {
+					'': [null]
+				}], actual => {
+					expect(actual).toBe(expression);
+					expect(actual).toBe(element[3]['']);
+				});
+			});
+			
+			it('one two', () => {
+				test('one \n two', [], [{
+					'': []
+				}, 'tag', 'one', {
+					'': []
+				}, 'two', {
+					'': []
+				}], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[5]['']);
+				});
+			});
+			
+			it('one two=', () => {
+				test('one \n two=', [], [{
+					'': []
+				}, 'tag', 'one', {
+					'': [],
+					two: []
+				}], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[3].two);
+				});
+			});
+			
+			it('one =', () => {
+				test('one \n =', [], [{
+					'': []
+				}, 'tag', '', {
+					'': [],
+					one: []
+				}], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[3].one);
+				});
+			});
+			
+			it('one= two', () => {
+				test('one= \n two', [], [{
+					'': []
+				}, 'tag', '', {
+					'': [],
+					one: []
+				}, 'two', {
+					'': []
+				}], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[5]['']);
+				});
+			});
+			
+			it('one= two=', () => {
+				test('one= \n two=', [], [{
+					'': []
+				}, 'tag', '', {
+					'': [],
+					one: [],
+					two: []
+				}], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[3].two);
+				});
+			});
+			
+			it('one= =', () => {
+				test('one= \n =', [null], [{
+					'': []
+				}, 'tag', '', {
+					'': [],
+					one: [null]
+				}], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[3].one);
+				});
+			});
+			
+			it('= two', () => {
+				test('= \n two', [], [{
+					'': []
+				}, 'tag', '', {
+					'': [null]
+				}, 'two', {
+					'': []
+				}], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[5]['']);
+				});
+			});
+			
+			it('= two=', () => {
+				test('= \n two=', [], [{
+					'': []
+				}, 'tag', '', {
+					'': [null],
+					two: []
+				}], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[3].two);
+				});
+			});
+			
+			it('= =', () => {
+				test('= \n =', [null, null], [{
+					'': []
+				}, 'tag', '', {
+					'': [null, null]
+				}], actual => {
+					expect(actual).toBe(expression);
+					expect(actual).toBe(element[3]['']);
+				});
+			});
 		});
-	
-		it('sets tag', () => {
-			const actual = append(expression, 'tag', true, element);
-	
-			expect(expression).toEqual([[]]);
-			expect(element).toEqual([{}, 'tag']);
-			expect(actual).toBe(expression);
+
+		describe('middle', () => {
+			beforeEach(() => {
+				complete = false;
+				element = [{ '': [] }, 'tag', 'path', { '': expression }];
+			});
+
+			it('empty', () => {
+				test(' \n ', [], [{
+					'': []
+				}, 'tag', 'path', {
+					'': []
+				}], actual => {
+					expect(actual).toBe(expression);
+					expect(actual).toBe(element[3]['']);
+				});
+			});
+
+			it('one', () => {
+				test('one', [], [{
+					'': []
+				}, 'tag', 'path', {
+					'': []
+				}, 'one', {
+					'': []
+				}], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[5]['']);
+				});
+			});
+			
+			it('one two', () => {
+				test('one \n two', [], [{
+					'': []
+				}, 'tag', 'path', {
+					'': [],
+					one: []
+				}, 'two', {
+					'': []
+				}], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[5]['']);
+				});
+			});
+			
+			it('one two=', () => {
+				test('one \n two=', [], [{
+					'': []
+				}, 'tag', 'path', {
+					'': [],
+					one: [],
+					two: []
+				}], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[3].two);
+				});
+			});
 		});
-	
-		it('sets tag at the end if not yet set', () => {
-			const actual = append(expression, 'tag', false, element);
-	
-			expect(expression).toEqual([[]]);
-			expect(element).toEqual([{}, 'tag']);
-			expect(actual).toBe(expression);
+
+		describe('end', () => {
+			beforeEach(() => {
+				complete = true;
+				element = [{ '': [] }, 'tag', 'path', { '': expression }];
+			});
+
+			it('one', () => {
+				test('one', [], [{
+					'': []
+				}, 'tag', 'path', {
+					'': [],
+					one: []
+				}], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[3].one);
+				});
+			});
+			
+			it('one two', () => {
+				test('one \n two', [], [{
+					'': []
+				}, 'tag', 'path', {
+					'': [],
+					one: [],
+					two: []
+				}], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[3].two);
+				});
+			});
+			
+			it('one= two', () => {
+				test('one= \n two', [], [{
+					'': []
+				}, 'tag', 'path', {
+					'': [],
+					one: [],
+					two: []
+				}], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[3].two);
+				});
+			});
+			
+			it('= two', () => {
+				test('= \n two', [], [{
+					'': []
+				}, 'tag', 'path', {
+					'': [null],
+					two: []
+				}], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[3].two);
+				});
+			});
 		});
-	
-		it('sets attribute', () => {
-			const actual = append(expression, 'name=', true, element);
-	
-			expect(expression).toEqual([[]]);
-			expect(element).toEqual([{ name: [[]] }, '']);
-			expect(actual).toBe(element[0].name);
-			expect(actual).not.toBe(expression);
-		});
-	
-		it('sets flag', () => {
-			const actual = append(expression, 'tag flag', false, element);
-	
-			expect(expression).toEqual([[]]);
-			expect(element).toEqual([{ flag: [[]] }, 'tag']);
-			expect(actual).not.toBe(element[0].flag);
-			expect(actual).not.toBe(expression);
-		});
-	
-		it('sets second tag', () => {
-			const actual = append(expression, 'tag flag alt', true, element);
-	
-			expect(expression).toEqual([[]]);
-			expect(element).toEqual([{ flag: [[]] }, 'tag', {}, 'alt']);
-			expect(actual).not.toBe(element[0].flag);
-			expect(actual).not.toBe(expression);
+
+		describe('only', () => {
+			beforeEach(() => {
+				complete = true;
+				element = [{ '': [] }, 'tag'];
+			});
+
+			it('one two', () => {
+				test('one \n two', [], [{
+					'': []
+				}, 'tag', 'one', {
+					'': [],
+					two: []
+				}], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[3].two);
+				});
+			});
+
+			it('one= two', () => {
+				test('one= \n two', [], [{
+					'': []
+				}, 'tag', '', {
+					'': [],
+					one: [],
+					two: []
+				}], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[3].two);
+				});
+			});
+
+			it('= two', () => {
+				test('= \n two', [], [{
+					'': []
+				}, 'tag', '', {
+					'': [null],
+					two: []
+				}], actual => {
+					expect(actual).not.toBe(expression);
+					expect(actual).toBe(element[3].two);
+				});
+			});
 		});
 	});
 });
