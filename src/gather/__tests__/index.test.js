@@ -1,69 +1,60 @@
 import { fetch } from '../fetch';
-import { gather } from '..';
+import { gather, cache } from '..';
 
 jest.mock('../fetch');
 
 describe('gather', () => {
-	let array;
-	let object;
-	let request;
+	let structure;
+	let data;
 
 	beforeEach(() => {
-		fetch.mockClear().mockResolvedValue('data');
+		structure = ['first', 'object', ['first', 'last'], 'last'];
+		data = { first: 123, last: 789, object: { first: 'abc', last: 'xyz' } };
 
-		array = ['property'];
-		object = { key: 'value' };
-		request = ['route', array, object];
+		fetch.mockClear().mockImplementation(() => Promise.resolve(data));
+
+		for (const key in cache) {
+			delete cache[key];
+		}
+
+		Object.assign(cache, { second: 456, object: { second: 'lmn' } });
 	});
 
-	it('makes single request', () => {
-		return gather(...request).then(data => {
-			expect(fetch).toHaveBeenCalledWith(request);
-			expect(data).toBe('data');
+	it('gathers all data', () => {
+		return gather(structure).then(actual => {
+			expect(fetch).toHaveBeenCalledWith('/first-object/first-last//last/');
+			expect(cache).toEqual({ first: 123, second: 456, last: 789, object: { first: 'abc', second: 'lmn', last: 'xyz' } });
+			expect(actual).toEqual({ first: 123, last: 789, object: { first: 'abc', last: 'xyz' } });
 		});
 	});
 
-	it('makes multiple requests', () => {
-		return gather(...request, 'other').then(data => {
-			expect(fetch.mock.calls).toEqual([
-				[request],
-				[['other', [], {}]]
-			]);
+	it('gathers empty data', () => {
+		data = {};
 
-			expect(data).toEqual(['data', 'data']);
+		return gather(structure).then(actual => {
+			expect(cache).toEqual({ first: undefined, second: 456, last: undefined, object: { first: undefined, second: 'lmn', last: undefined } });
+			expect(actual).toEqual({});
 		});
 	});
 
-	it('ignores missing array', () => {
-		return gather('other', object, ...request).then(data => {
-			expect(fetch.mock.calls).toEqual([
-				[['other', [], object]],
-				[request]
-			]);
+	it('gathers missing data', () => {
+		Object.assign(cache, { first: 123 });
+		Object.assign(cache.object, { last: 'xyz' });
 
-			expect(data).toEqual(['data', 'data']);
+		return gather(structure).then(actual => {
+			expect(fetch).toHaveBeenCalledWith('/object/first//last/');
+			expect(cache).toEqual({ first: 123, second: 456, last: 789, object: { first: 'abc', second: 'lmn', last: 'xyz' } });
+			expect(actual).toEqual({ first: 123, last: 789, object: { first: 'abc', last: 'xyz' } });
 		});
 	});
 
-	it('ignores missing object', () => {
-		return gather('other', array, ...request).then(data => {
-			expect(fetch.mock.calls).toEqual([
-				[['other', array, {}]],
-				[request]
-			]);
+	it('does not fetch for data', () => {
+		Object.assign(cache, { first: 123, last: 789 });
+		Object.assign(cache.object, { first: 'abc', last: 'xyz' });
 
-			expect(data).toEqual(['data', 'data']);
-		});
-	});
-
-	it('ignores missing array and object', () => {
-		return gather('other', ...request).then(data => {
-			expect(fetch.mock.calls).toEqual([
-				[['other', [], {}]],
-				[request]
-			]);
-
-			expect(data).toEqual(['data', 'data']);
+		return gather(structure).then(actual => {
+			expect(fetch).not.toHaveBeenCalled();
+			expect(actual).toEqual({ first: 123, last: 789, object: { first: 'abc', last: 'xyz' } });
 		});
 	});
 });

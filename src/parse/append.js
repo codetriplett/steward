@@ -39,7 +39,8 @@ export function append (expression, value, complete, element, closing) {
 			const key = value.replace('=', '');
 
 			if (key) {
-				attributes[key] = expression = [];
+				expression = [];
+				attributes[key] = value.endsWith('=') ? expression : true;
 			} else {
 				expression.push(null);
 			}

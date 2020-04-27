@@ -1,26 +1,21 @@
 import { fetch } from './fetch';
+import { pack } from './pack';
+import { merge } from './merge';
+import { recall } from './recall';
 
 export const cache = {};
 
-export function gather (...parameters) {
-	const requests = [];
-	let request;
+export async function gather (structure) {
+	const memory = recall(structure, cache) || {};
+	const path = pack(structure);
+	let data;
 
-	for (const item of parameters) {
-		if (typeof item === 'string') {
-			requests.push(request = [item, [], {}]);
-		} else if (!requests.length) {
-			continue;
-		} else if (Array.isArray(item)) {
-			request[1].push(...item);
-		} else {
-			Object.assign(request[2], item);
-		}
+	if (structure.length) {
+		const response = await fetch(path);
+		data = recall(structure, response);
+		merge(data, cache);
+		merge(data, memory);
 	}
 
-	if (requests.length < 2) {
-		return fetch(request);
-	}
-
-	return Promise.all(requests.map(it => fetch(it)));
+	return memory;
 }

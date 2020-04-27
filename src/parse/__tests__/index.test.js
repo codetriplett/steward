@@ -40,11 +40,11 @@ describe('parse', () => {
 	it('complex', () => {
 		const actual = parse(`
 			before
-			<tag container {flag true} name="abc">
+			<tag container {flag true} flag>
 				first
-				<name="lmno">content</>
+				<name="lmno"={value}>content</>
 				<component "("{value}")" /data>
-				<{flag false}>content</>
+				<>content</>
 				last
 			</container/data other {flag false}>
 			after
@@ -52,11 +52,11 @@ describe('parse', () => {
 
 		expect(actual).toEqual([
 			['before'],
-			[{}, 'tag', { '': [['flag', 'true']], name: ['abc'] }, 'container',
+			[{}, 'tag', { '': [['flag', 'true']], flag: true }, 'container',
 				['first'],
-				[{ name: ['lmno'] }, '', ['content'], '', {}],
+				[{ name: ['lmno', null, ['value']] }, '', ['content'], '', {}],
 				[{ '': ['(', ['value'], ')'] }, 'component', 'data', {}],
-				[{ '': [['flag', 'false']] }, '', ['content'], '', {}],
+				[{}, '', ['content'], '', {}],
 				['last'],
 			'container/data', {}, 'other', { '': [['flag', 'false']] }],
 			['after']

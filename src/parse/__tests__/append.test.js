@@ -264,7 +264,7 @@ describe('append', () => {
 			it('one two', () => {
 				test('one \n two', [], [{
 					'': [],
-					one: []
+					one: true
 				}, 'tag', {
 					'': []
 				}, 'two'], actual => {
@@ -276,7 +276,7 @@ describe('append', () => {
 			it('one two=', () => {
 				test('one \n two=', [], [{
 					'': [],
-					one: [],
+					one: true,
 					two: []
 				}, 'tag'], actual => {
 					expect(actual).not.toBe(expression);
@@ -294,21 +294,21 @@ describe('append', () => {
 			it('one', () => {
 				test('one', [], [{
 					'': [],
-					one: []
+					one: true
 				}, 'tag'], actual => {
 					expect(actual).not.toBe(expression);
-					expect(actual).toBe(element[0].one);
+					expect(actual).not.toBe(element[0].one);
 				});
 			});
 			
 			it('one two', () => {
 				test('one \n two', [], [{
 					'': [],
-					one: [],
-					two: []
+					one: true,
+					two: true
 				}, 'tag'], actual => {
 					expect(actual).not.toBe(expression);
-					expect(actual).toBe(element[0].two);
+					expect(actual).not.toBe(element[0].two);
 				});
 			});
 			
@@ -316,20 +316,20 @@ describe('append', () => {
 				test('one= \n two', [], [{
 					'': [],
 					one: [],
-					two: []
+					two: true
 				}, 'tag'], actual => {
 					expect(actual).not.toBe(expression);
-					expect(actual).toBe(element[0].two);
+					expect(actual).not.toBe(element[0].two);
 				});
 			});
 			
 			it('= two', () => {
 				test('= \n two', [], [{
 					'': [null],
-					two: []
+					two: true
 				}, 'tag'], actual => {
 					expect(actual).not.toBe(expression);
-					expect(actual).toBe(element[0].two);
+					expect(actual).not.toBe(element[0].two);
 				});
 			});
 		});
@@ -342,10 +342,10 @@ describe('append', () => {
 			it('one two', () => {
 				test('one \n two', [], [{
 					'': [],
-					two: []
+					two: true
 				}, 'one'], actual => {
 					expect(actual).not.toBe(expression);
-					expect(actual).toBe(element[0].two);
+					expect(actual).not.toBe(element[0].two);
 				});
 			});
 
@@ -353,20 +353,20 @@ describe('append', () => {
 				test('one= \n two', [], [{
 					'': [],
 					one: [],
-					two: []
+					two: true
 				}, ''], actual => {
 					expect(actual).not.toBe(expression);
-					expect(actual).toBe(element[0].two);
+					expect(actual).not.toBe(element[0].two);
 				});
 			});
 
 			it('= two', () => {
 				test('= \n two', [], [{
 					'': [null],
-					two: []
+					two: true
 				}, ''], actual => {
 					expect(actual).not.toBe(expression);
-					expect(actual).toBe(element[0].two);
+					expect(actual).not.toBe(element[0].two);
 				});
 			});
 		});
@@ -577,7 +577,7 @@ describe('append', () => {
 					'': []
 				}, 'tag', 'path', {
 					'': [],
-					one: []
+					one: true
 				}, 'two', {
 					'': []
 				}], actual => {
@@ -591,7 +591,7 @@ describe('append', () => {
 					'': []
 				}, 'tag', 'path', {
 					'': [],
-					one: [],
+					one: true,
 					two: []
 				}], actual => {
 					expect(actual).not.toBe(expression);
@@ -611,10 +611,10 @@ describe('append', () => {
 					'': []
 				}, 'tag', 'path', {
 					'': [],
-					one: []
+					one: true
 				}], actual => {
 					expect(actual).not.toBe(expression);
-					expect(actual).toBe(element[3].one);
+					expect(actual).not.toBe(element[3].one);
 				});
 			});
 			
@@ -623,11 +623,11 @@ describe('append', () => {
 					'': []
 				}, 'tag', 'path', {
 					'': [],
-					one: [],
-					two: []
+					one: true,
+					two: true
 				}], actual => {
 					expect(actual).not.toBe(expression);
-					expect(actual).toBe(element[3].two);
+					expect(actual).not.toBe(element[3].two);
 				});
 			});
 			
@@ -637,10 +637,10 @@ describe('append', () => {
 				}, 'tag', 'path', {
 					'': [],
 					one: [],
-					two: []
+					two: true
 				}], actual => {
 					expect(actual).not.toBe(expression);
-					expect(actual).toBe(element[3].two);
+					expect(actual).not.toBe(element[3].two);
 				});
 			});
 			
@@ -649,10 +649,10 @@ describe('append', () => {
 					'': []
 				}, 'tag', 'path', {
 					'': [null],
-					two: []
+					two: true
 				}], actual => {
 					expect(actual).not.toBe(expression);
-					expect(actual).toBe(element[3].two);
+					expect(actual).not.toBe(element[3].two);
 				});
 			});
 		});
@@ -668,10 +668,10 @@ describe('append', () => {
 					'': []
 				}, 'tag', 'one', {
 					'': [],
-					two: []
+					two: true
 				}], actual => {
 					expect(actual).not.toBe(expression);
-					expect(actual).toBe(element[3].two);
+					expect(actual).not.toBe(element[3].two);
 				});
 			});
 
@@ -681,10 +681,10 @@ describe('append', () => {
 				}, 'tag', '', {
 					'': [],
 					one: [],
-					two: []
+					two: true
 				}], actual => {
 					expect(actual).not.toBe(expression);
-					expect(actual).toBe(element[3].two);
+					expect(actual).not.toBe(element[3].two);
 				});
 			});
 
@@ -693,10 +693,10 @@ describe('append', () => {
 					'': []
 				}, 'tag', '', {
 					'': [null],
-					two: []
+					two: true
 				}], actual => {
 					expect(actual).not.toBe(expression);
-					expect(actual).toBe(element[3].two);
+					expect(actual).not.toBe(element[3].two);
 				});
 			});
 		});

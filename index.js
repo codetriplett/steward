@@ -1,4 +1,4 @@
-require('./src/steward')(8080, `${__dirname}/examples`, ({
+require('./lib/steward').default(8080, `${__dirname}/src/examples`, ({
 	'user-agent': userAgent,
 	cookie: { view }
 }) => ({

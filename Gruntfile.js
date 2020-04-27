@@ -20,7 +20,9 @@ module.exports = function (grunt) {
 			main: {
 				files: {
 					'dist/steward.min.js': 'dist/steward.min.js',
-					'lib/steward.js': 'lib/steward.js',
+					'lib/server/fetch.js': 'src/server/fetch.js',
+					'lib/server/index.js': 'src/server/index.js',
+					'lib/steward.js': 'src/steward.js'
 				}
 			}
 		},
@@ -46,10 +48,6 @@ module.exports = function (grunt) {
 
 	grunt.registerTask('before', () => {
 		merge('./dist/steward.min.js', [
-			'./src/steward.js'
-		]);
-		
-		merge('./lib/steward.js', [
 			'./src/steward.js'
 		]);
 	});
