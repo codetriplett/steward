@@ -1,4 +1,4 @@
-import { fetch } from './fetch';
+import { fetch } from '../server/fetch';
 import { pack } from './pack';
 import { merge } from './merge';
 import { recall } from './recall';

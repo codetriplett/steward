@@ -1,8 +1,9 @@
-import http from 'http';
+import { createServer } from 'http';
 import { fetch } from './fetch';
+import { render } from '../render';
 
 export function server (port, directory) {
-	http.createServer(({ url }, res) => {
-		return fetch(`${directory}${url}`, res);
+	createServer(({ url }, res) => {
+		fetch(`${directory}${url}`, res, data => data);
 	}).listen(port);
 }

@@ -1,7 +1,7 @@
-import { fetch } from '../fetch';
+import { fetch } from '../../server/fetch';
 import { gather, cache } from '..';
 
-jest.mock('../fetch');
+jest.mock('../../server/fetch');
 
 describe('gather', () => {
 	let structure;

@@ -20,6 +20,9 @@ module.exports = function (grunt) {
 			main: {
 				files: {
 					'dist/steward.min.js': 'dist/steward.min.js',
+					'lib/render/locate.js': 'src/render/locate.js',
+					'lib/render/modify.js': 'src/render/modify.js',
+					'lib/render/index.js': 'src/render/index.js',
 					'lib/server/fetch.js': 'src/server/fetch.js',
 					'lib/server/index.js': 'src/server/index.js',
 					'lib/steward.js': 'src/steward.js'
