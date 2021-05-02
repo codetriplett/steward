@@ -1,17 +1,32 @@
 module.exports = function (grunt) {
 	function merge (path, files, resolve) {
-		const lib = path.startsWith('./lib/');
-		const regex = lib ? /^/ : /(^|[ \r\n]*)(import[^;]*;[ \r\n]*|export (default )?|module.exports = )/g;
+		const regex = /(^|[ \r\n]*)(import[^;]*;[ \r\n]*|export (default )?)/g;
 
 		grunt.file.write(path, files.map(path => {
-			let file = grunt.file.read(path).replace(regex, '');
-
-			if (!resolve) {
-				return file;
-			}
-
-			return resolve(file, path.match(/[^.\/]+(?=\.[^\/]+$)/)[0]);
+			const file = grunt.file.read(path).replace(regex, '');
+			if (!resolve) return file;
+			return resolve(file, path);
 		}).join('\n'));
+	}
+
+	function direct (name) {
+		if (typeof name !== 'object') {
+			return `if (typeof define === 'function' && define.amd) {
+				define(function () { return ${name}; });
+			} else if (typeof module !== 'undefined' && module.exports) {
+				module.exports = ${name};
+			} else if (typeof window === 'object' && window.document) {
+				window.${name} = ${name};
+			}`;
+		}
+
+		return Object.entries(name).map(([name, imports]) => `
+			var ${imports.join(', ')};
+			if (typeof module !== 'undefined' && module.exports) {
+				var library = require('${name}');
+				${imports.map(it => `${it} = library.${it};`).join('')}
+			}
+		`).join('\n');
 	}
 
 	grunt.initConfig({
@@ -19,13 +34,7 @@ module.exports = function (grunt) {
 		babel: {
 			main: {
 				files: {
-					'dist/steward.min.js': 'dist/steward.min.js',
-					'lib/render/locate.js': 'src/render/locate.js',
-					'lib/render/modify.js': 'src/render/modify.js',
-					'lib/render/index.js': 'src/render/index.js',
-					'lib/server/fetch.js': 'src/server/fetch.js',
-					'lib/server/index.js': 'src/server/index.js',
-					'lib/steward.js': 'src/steward.js'
+					'dist/steward.min.js': 'dist/steward.min.js'
 				}
 			}
 		},
@@ -43,15 +52,32 @@ module.exports = function (grunt) {
 					'dist/steward.min.js': 'dist/steward.min.js'
 				}
 			}
+		},
+		copy: {
+			main: {
+				expand: true,
+				cwd: 'dist/',
+				src: 'steward.min.js',
+				dest: 'preview/',
+				flatten: true
+			}
 		}
 	});
 
 	grunt.loadNpmTasks('grunt-babel');
+	grunt.loadNpmTasks('grunt-contrib-copy');
 	grunt.loadNpmTasks('grunt-contrib-uglify');
 
 	grunt.registerTask('before', () => {
 		merge('./dist/steward.min.js', [
-			'./src/steward.js'
+			'./src/server/file.js',
+			'./src/server/index.js',
+			'./src/server/parse.js',
+			'./src/server/receive.js',
+			'./src/server/render.js',
+			'./src/server/send.js',
+			'./src/server/types.js',
+			'./src/index.js'
 		]);
 	});
 
@@ -59,10 +85,20 @@ module.exports = function (grunt) {
 		const path = './dist/steward.min.js';
 
 		grunt.file.write(path, `(function () {
+			${direct({
+				http: ['createServer'],
+				fs: ['readdir', 'readFile', 'writeFile']
+			})}
 			${grunt.file.read(path)}
-			window.steward = steward;
+			${direct('steward')}
 		})();`);
 	});
 
-	grunt.registerTask('default', ['before', 'babel', 'after', 'uglify']);
+	grunt.registerTask('default', [
+		'before',
+		'babel',
+		'after',
+		'uglify',
+		'copy'
+	]);
 };
