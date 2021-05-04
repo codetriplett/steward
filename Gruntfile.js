@@ -52,20 +52,10 @@ module.exports = function (grunt) {
 					'dist/steward.min.js': 'dist/steward.min.js'
 				}
 			}
-		},
-		copy: {
-			main: {
-				expand: true,
-				cwd: 'dist/',
-				src: 'steward.min.js',
-				dest: 'preview/',
-				flatten: true
-			}
 		}
 	});
 
 	grunt.loadNpmTasks('grunt-babel');
-	grunt.loadNpmTasks('grunt-contrib-copy');
 	grunt.loadNpmTasks('grunt-contrib-uglify');
 
 	grunt.registerTask('before', () => {
@@ -98,7 +88,6 @@ module.exports = function (grunt) {
 		'before',
 		'babel',
 		'after',
-		'uglify',
-		'copy'
+		'uglify'
 	]);
 };

@@ -16,7 +16,7 @@ export function server (port, url, callback) {
 
 	const [, directory, _$, _] = url.match(/^(.*?)(?:\/|\\)([^/\\#]+)#(.*?)$/);
 	resources.unshift(_$, 'favicon.ico');
-	const $ = require(`./${_$}`);
+	const $ = require(`${directory}/${_$}`);
 	const $_ = new Set();
 	const routes = [];
 	if (typeof callback === 'function') routes.push([/^$/, callback]);

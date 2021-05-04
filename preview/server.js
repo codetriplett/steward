@@ -10,7 +10,7 @@ function renderPage (title, ...content) {
 </html>`;
 }
 
-require('./steward.min.js')(8080, [
+require('../dist/steward.min.js')(8080, [
 	`${__dirname}/stew.min.js#$`,
 	'directory.js',
 	'accordion.js'
