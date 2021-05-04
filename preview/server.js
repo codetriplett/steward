@@ -1,35 +1,34 @@
+function renderPage (title, ...content) {
+	return render => `<!doctype html>
+<html lang="en">
+	<head>
+		<title>${title}</title>
+	</head>
+	<body>
+		${content.map(it => render(it)).join('')}
+	</body>
+</html>`;
+}
+
 require('./steward.min.js')(8080, [
 	`${__dirname}/stew.min.js#$`,
 	'directory.js',
-	'accordion.js',
-	'favicon.ico'
+	'accordion.js'
 ], () => {
-	return render => `
-		<!doctype html>
-		<html lang="en">
-			<head>
-				<title>Directory</title>
-			</head>
-			<body>
-				${render({ '': 'directory.js#Directory', links: [
-					{
-						href: '/accordion?items=one,two,three,four,five',
-						text: 'Accordion'
-					}
-				] })}
-			</body>
-		</html>
-	`;
+	return renderPage('Directory', {
+		'': 'directory.js#Directory',
+		links: [
+			{
+				href: '/accordion?items=one,two,three,four,five,six',
+				text: 'Accordion'
+			}
+		]
+	});
 })(/^accordion$/, ({ items }) => {
-	return render => `
-		<!doctype html>
-		<html lang="en">
-			<head>
-				<title>Accordion</title>
-			</head>
-			<body>
-				${render({ '': 'accordion.js#Accordion', items: items.split(',') })}
-			</body>
-		</html>
-	`;
+	return renderPage('Accordion', {
+		'': 'accordion.js#Accordion',
+		items: items.split(',')
+	});
+})(/^api\/v1\/data$/, () => {
+	return { key: 'value' };
 });

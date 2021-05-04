@@ -2,20 +2,20 @@ import { types } from '.';
 import { file } from './file';
 
 export function send (res, content, type, status = 200) {
-	if (typeof content !== 'string') {
-		if (type === types.html) {
+	if (!(content instanceof Buffer) && typeof content !== 'string') {
+		if (!type) {
 			file.bind(this)('404.html').then(it => send(res, it, type, 404));
 			return;
 		}
 
-		content = JSON.stringify(content);
-		if (!type) type = types.json;
-	}
-
-	if (content === undefined) {
-		status = 404;
-		content = 'Not found';
-		type = types.txt;
+		if (content === undefined) {
+			status = 404;
+			content = 'Not found';
+		} else {
+			content = JSON.stringify(content);
+		}
+	} else if (!type) {
+		type = types.html;
 	}
 
 	const utf8 = !/^image\/(?!svg)/.test(type);

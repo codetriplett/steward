@@ -1,7 +1,7 @@
 {
 	"name": "@triplett/steward",
 	"version": "1.0.0",
-	"description": "A collection of libraries for frontend development.",
+	"description": "A companion libray for @triplett/stew.",
 	"main": "dist/steward.min.js",
 	"scripts": {
 		"test": "jest --watch --runInBand",

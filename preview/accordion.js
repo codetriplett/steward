@@ -5,7 +5,7 @@ function Accordion ({
 	items
 }) {
 	return $`
-		${prev => expanded && hook('3').focus()}
+		${() => expanded && hook('3').focus()}
 		<ul>
 			${items.slice(0, expanded ? undefined : 3).map((item, i) => $`
 				<li ${{ '': i }} tabindex="-1">${item}</>
