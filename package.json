@@ -2,34 +2,32 @@
 	"name": "@triplett/steward",
 	"version": "1.0.0",
 	"description": "A companion libray for @triplett/stew.",
+	"author": "triplett",
+	"license": "MIT",
 	"main": "dist/steward.min.js",
 	"scripts": {
-		"test": "jest --watch --runInBand",
+		"test": "jest --watch",
 		"build": "rimraf dist && grunt",
 		"start": "npm run build & node preview/server.js"
 	},
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/codetriplett/steward.git"
-	},
-	"files": [
-		"dist"
-	],
 	"keywords": [
 		"server",
 		"routing",
-		"cache"
+		"stew"
 	],
-	"author": "triplett",
-	"license": "MIT",
+	"files": [
+		"dist"
+	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/codetriplett/steward.git"
+	},
 	"bugs": {
 		"url": "https://github.com/codetriplett/steward/issues"
 	},
 	"homepage": "https://github.com/codetriplett/steward#readme",
 	"jest": {
-		"testURL": "http://localhost",
-		"testEnvironment": "node",
-		"testRegex": "/__tests__/.*\\.test\\.js$"
+		"testURL": "http://localhost"
 	},
 	"devDependencies": {
 		"@babel/cli": "7.13.16",
