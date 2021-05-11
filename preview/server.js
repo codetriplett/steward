@@ -11,7 +11,7 @@ function renderPage (title, ...content) {
 }
 
 require('../dist/steward.min.js')(8080, [
-	`${__dirname}/stew.min.js#$`,
+	__dirname,
 	'directory.js',
 	'accordion.js'
 ], () => {

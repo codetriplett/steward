@@ -1,6 +1,6 @@
 export function render (object) {
 	if (typeof object !== 'object') return '';
-	const { '': directory, $_, $, _ } = this;
+	const { '': dir, $_, $, _ } = this;
 	const { '': string, ...props } = object;
 	if (typeof string !== 'string') return '';
 	let [, path = '', name = ''] = string.match(/^(.*?)(?:#(.*?))?$/);
@@ -8,7 +8,7 @@ export function render (object) {
 
 	try {
 		path = path.replace(/^\/*/, '/');
-		tag = path && require(`${directory}${path}`);
+		tag = path && require(`${dir}${path}`);
 		if (name) $_.add(path);
 	} catch (err) {}
 
@@ -24,7 +24,7 @@ export function render (object) {
 				'p=s.previousSibling;',
 				'c=p.previousSibling;',
 				'p=JSON.parse(p.innerHTML);',
-				`${_}({'':c},${_}(window.${name},p));`,
+				`${_}(c,${_}(window.${name},p));`,
 				'})();'
 			)
 		].join('')

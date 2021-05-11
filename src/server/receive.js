@@ -1,5 +1,5 @@
 export function receive (req) {
-	return new Promise(resolve => {
+	return new Promise((resolve, reject) => {
 		let body = '';
 				
 		req.on('data', (data) => {
@@ -7,6 +7,12 @@ export function receive (req) {
 			if (body.length > 1e6) req.connection.destroy();
 		});
 
-		req.on('end', () => resolve(body));
+		req.on('end', () => {
+			try {
+				resolve(JSON.parse(body));
+			} catch (err) {
+				reject();
+			}
+		});
 	});
 }

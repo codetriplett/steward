@@ -4,7 +4,9 @@ import { file } from './file';
 export function send (res, content, type, status = 200) {
 	if (!(content instanceof Buffer) && typeof content !== 'string') {
 		if (!type) {
-			file.bind(this)('404.html').then(it => send(res, it, type, 404));
+			file.bind(this)('404.html')
+				.catch(() => {})
+				.then(it => send(res, it, types.html, 404));
 			return;
 		}
 

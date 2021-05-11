@@ -3,19 +3,33 @@ import { types } from '.';
 import { parse } from './parse';
 
 export function file (url, ...params) {
-	const { '': directory } = this;
-	let [path, extension] = parse(url);
-	path = `${directory}/${path}`;
-	let fn = readdir;
+	let fn = readdir, path, extension;
+
+	if (url.startsWith('@')) {
+		path = require.resolve(url).slice(0, -3);
+		extension = 'js';
+	} else {
+		const { '': dir } = this;
+		[path, extension] = parse(url);
+		path = `${dir}/${path}`;
+	}
 
 	if (extension !== undefined) {
 		const utf8 = !/^image\/(?!svg)/.test(types[extension]);
 		path += `.${extension}`;
-		fn = params.length ? writeFile : readFile;
+
+		if (params.length) {
+			const [body] = params;
+			if (typeof body === 'object') params[0] = JSON.stringify(body);
+			fn = writeFile;
+		} else {
+			fn = readFile;
+		}
+
 		params.splice(1, params.length, utf8 ? 'utf8' : '');
 	}
 
 	return new Promise((resolve, reject) => {
-		fn(path, ...params, (err, data) => err ? reject(err) : resolve(data));
+		fn(path, ...params, (err, data = {}) => err ? reject(err) : resolve(data));
 	});
 }
