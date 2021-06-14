@@ -1,5 +1,5 @@
 export function parse (url, ...params) {
-	const regex = /^\/*(.*?)?(?:\.([^/.?#]*))?\/*(?:\?(.*?))?$/;
+	const regex = /^(?:\/+)?(.*?)(?:\.([^/.?#]*)|\/*)?(?:\?(.*?))?$/;
 	const [, path = '', extension, query] = url.match(regex);
 	const props = params.length ? { '': params.shift() } : {};
 

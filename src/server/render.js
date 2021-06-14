@@ -7,8 +7,8 @@ export function render (object) {
 	let tag;
 
 	try {
-		path = path.replace(/^\/*/, '/');
-		tag = path && require(`${dir}${path}`);
+		path = path.replace(/^\/*/, '');
+		tag = path && require(`${dir}/${path}`);
 		if (name) $_.add(path);
 	} catch (err) {}
 
@@ -24,7 +24,7 @@ export function render (object) {
 				'p=s.previousSibling;',
 				'c=p.previousSibling;',
 				'p=JSON.parse(p.innerHTML);',
-				`${_}(c,${_}(window.${name},p));`,
+				`${_}(${tag ? 'c' : '{\'\':c}'},${_}(window.${name},p));`,
 				'})();'
 			)
 		].join('')

@@ -57,7 +57,7 @@ export function server (port, url, callback) {
 			if (!route) return sender(res, undefined, type);
 			const [regex, callback] = route;
 			const matches = (path.match(regex) || []).slice(1);
-			try { promise = callback(props, ...matches, filer); } catch (err) {}
+			try { promise = callback(props, ...matches, filer, req, res); } catch (err) {}
 
 			Promise.resolve(promise, filer).catch(() => {}).then(it => {
 				if (typeof it !== 'function') {
@@ -85,7 +85,7 @@ export function server (port, url, callback) {
 						})
 						.replace(/(\n\t*?)<body>/, (match, tab) => {
 							return `${match}${[...$_].map(path => (
-								`${tab}\t<script src="${path}"></script>`
+								path && `${tab}\t<script src="/${path}"></script>`
 							)).join('')}`;
 						});
 				});
