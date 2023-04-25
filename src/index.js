@@ -21,24 +21,9 @@
  * SOFTWARE.
  */
 
+import { createServer } from 'http';
 import stew from '@triplett/stew';
 import { send, receive, file } from './transfer';
-
-export const types = {
-	txt: 'text/plain',
-	html: 'text/html',
-	css: 'text/css',
-	js: 'application/javascript',
-	mjs: 'application/javascript',
-	json: 'application/json',
-	bmp: 'image/bmp',
-	gif: 'image/gif',
-	jpeg: 'image/jpeg',
-	jpg: 'image/jpeg',
-	png: 'image/png',
-	svg: 'image/svg+xml',
-	ico: 'image/x-icon'
-};
 
 export async function hydrateLayout (layout, params, converter) {
 	const promises = [];
@@ -57,7 +42,8 @@ export async function hydrateLayout (layout, params, converter) {
 		child.toString = await promise;
 	}
 
-	if (promises.length) return Promise.all(promises);
+	if (promises.length) await Promise.all(promises);
+	return layout;
 }
 
 export default function (port, folder, ...routes) {
@@ -66,15 +52,17 @@ export default function (port, folder, ...routes) {
 	folder = folder.replace(/\/+$/, '');
 
 	function read (path, extension) {
-		return file(path.replace(/^\/+/, ''), extension, readFile);
+		const fullPath = `${folder}/${path.replace(/^\/+/, '')}`;
+		return file(fullPath, extension, readFile);
 	}
 
 	function write (path, extension, content) {
-		return file(path.replace(/^\/+/, ''), extension, writeFile, content);
+		const fullPath = `${folder}/${path.replace(/^\/+/, '')}`;
+		return file(fullPath, extension, writeFile, content);
 	}
 
-	createServer(async ({ url }, res) => {
-		url = url.replace(/^\/+/, '');
+	createServer(async (req, res) => {
+		const url = req.url.replace(/^\/+|\/+(?=\?|$)/g, '');
 		const route = routes.find(([regex]) => regex.test(url));
 
 		if (!route) {
@@ -84,7 +72,7 @@ export default function (port, folder, ...routes) {
 
 		const [regex, ...resolvers] = route;
 
-		if (resolvers.length) {
+		if (!resolvers.length) {
 			// return static asset
 			try {
 				const regex = /^.*?(?:\.([^/.?#]*))?/;
@@ -118,15 +106,15 @@ export default function (port, folder, ...routes) {
 			send(res, `Invalid post: ${url}`);
 			return;
 		}
+		
+		if (Array.isArray(resolvers[0])) {
+			// give names to matches
+			const names = resolvers.shift();
+			const entries = names.map((name, i) => [name, matches[i]]);
+			result = Object.fromEntries(entries);
+		}
 
 		for (const resolver of resolvers) {
-			if (Array.isArray(resolver)) {
-				// give names to matches
-				const entries = resolver.map((name, i) => [name, matches[i]]);
-				result = Object.fromEntries(entries);
-				continue;
-			}
-
 			switch (typeof resolver) {
 				case 'function': {
 					// process custom callback
@@ -135,10 +123,12 @@ export default function (port, folder, ...routes) {
 				}
 				case 'string': {
 					// load and hydrate stew layout
-					const [, filename, hash] = resolver.match(/^(.*?)#(.*)$/);
-					let layout = require(`./${filename}`);
+					const [, path, hash] = resolver.match(/^(.*?)(?:#(.*))?$/);
+					let layout = require(`${folder}/${path.replace(/^\/+/, '')}`);
 					if (hash) layout = layout[hash];
-					layout = await hydrateLayout(layout, params, converter);
+					layout = await hydrateLayout(layout, result, converter);
+					const fragment = stew('', layout);
+					result = String(fragment);
 					continue;
 				}
 			}
@@ -150,8 +140,7 @@ export default function (port, folder, ...routes) {
 
 		switch (typeof result) {
 			case 'string': {
-				const fragment = stew('', layout);
-				send(res, String(fragment), 'html');
+				send(res, result, 'html');
 				return;
 			}
 			case 'object': {

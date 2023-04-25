@@ -1,3 +1,19 @@
+export const types = {
+	txt: 'text/plain',
+	html: 'text/html',
+	css: 'text/css',
+	js: 'application/javascript',
+	mjs: 'application/javascript',
+	json: 'application/json',
+	bmp: 'image/bmp',
+	gif: 'image/gif',
+	jpeg: 'image/jpeg',
+	jpg: 'image/jpeg',
+	png: 'image/png',
+	svg: 'image/svg+xml',
+	ico: 'image/x-icon'
+};
+
 export function send (res, content, type = 'txt', status = 200) {
 	const utf8 = !/^image\/(?!svg)/.test(type);
 
