@@ -49,13 +49,25 @@ export function receive (req, limit = 1e6) {
 	});
 }
 
-export function file (path, extension, callback, ...rest) {
+export function file (path, callback, ...rest) {
+	const [, extension] = path.match(/^.*?(?:\.([^./]*))?$/);
 	if (!extension) return Promise.reject(`Missing extension: ${path}`);
 	const type = types[extension];
 	const options = !/^image\/(?!svg)/.test(type) ? ['utf8'] : [];
 	if (rest.length) options.unshift(rest[0]);
 
 	return new Promise((resolve, reject) => {
-		callback(`${path}.${extension}`, ...params, (err, data = {}) => err ? reject(err) : resolve(data));
+		callback(path, ...options, (err, data = {}) => err ? reject(err) : resolve(data));
 	});
+}
+
+export function parse (query = '', outerSep = '&', innerSep = '=') {
+	const object = {};
+
+	for (const string of query.split(outerSep)) {
+		const [name, ...values] = string.split(innerSep);
+		object[name] = values.join(innerSep);
+	}
+
+	return object;
 }

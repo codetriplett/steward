@@ -22,137 +22,124 @@
  */
 
 import { createServer } from 'http';
+import { readFile, writeFile } from 'fs';
 import stew from '@triplett/stew';
-import { send, receive, file } from './transfer';
+import { send, receive, file, parse } from './transfer';
 
-export async function hydrateLayout (layout, params, converter) {
-	const promises = [];
-
-	for (const child of layout.slice(2)) {
-		if (typeof child !== 'object') continue;
-
-		if (Array.isArray(child)) {
-			const promise = hydrateLayout(child, params, converter);
-			promises.push(promise);
-			continue;
-		}
-
-		const promise = converter(child, params);
-		promises.push(promise);
-		child.toString = await promise;
+export function hydrateLayout (layout, params, converter, promises) {
+	if (typeof layout !== 'object') {
+		return layout;
+	} else if (Array.isArray(layout)) {
+		return [...layout.slice(0, 2), ...layout.slice(2).map(child => {
+			return hydrateLayout(child, params, converter, promises);
+		})];
 	}
-
-	if (promises.length) await Promise.all(promises);
-	return layout;
+	
+	// create new object to set toString to
+	const object = {};
+	const promise = Promise.resolve(converter(layout, params)).then(string => object.toString = () => string);
+	promises.push(promise);
+	return object;
 }
 
-export default function (port, folder, ...routes) {
-	if (typeof port !== 'number' || typeof folder !== 'string') return;
+export default function (folder, port, onerror, ...routes) {
+	if (typeof folder !== 'string' || typeof port !== 'number') return;
 	const converter = typeof routes[0] === 'function' ? routes.shift() : () => () => '';
 	folder = folder.replace(/\/+$/, '');
 
-	function read (path, extension) {
+	function read (path) {
 		const fullPath = `${folder}/${path.replace(/^\/+/, '')}`;
-		return file(fullPath, extension, readFile);
+		return file(fullPath, readFile);
 	}
 
-	function write (path, extension, content) {
+	function write (path, content) {
 		const fullPath = `${folder}/${path.replace(/^\/+/, '')}`;
-		return file(fullPath, extension, writeFile, content);
+		return file(fullPath, writeFile, content);
 	}
 
 	createServer(async (req, res) => {
-		const url = req.url.replace(/^\/+|\/+(?=\?|$)/g, '');
-		const route = routes.find(([regex]) => regex.test(url));
+		try {
+			const [, path, query] = req.url.match(/^\/?(.*?)\/?(?:\?(.*))?$/);
+			const route = routes.find(([regex]) => regex.test(path));
+			if (!route) throw new Error(`Route not found: ${path}`);
+			const [regex, ...resolvers] = route;
 
-		if (!route) {
-			send(res, `Route not found: ${url}`);
-			return;
-		}
+			if (!resolvers.length) {
+				// return static asset
+				try {
+					const [, extension] = path.match(/^.*?(?:\.([^./]*))?$/);
+					const content = await read(path);
+					send(res, content, extension);
+				} catch (e) {
+					send(res, 'File not found');
+				}
 
-		const [regex, ...resolvers] = route;
-
-		if (!resolvers.length) {
-			// return static asset
-			try {
-				const regex = /^.*?(?:\.([^/.?#]*))?/;
-				const [, extension] = path.match(regex);
-				const content = await read(url, extension);
-				send(res, content, extension);
-			} catch (e) {
-				send(res, 'File not found');
-			}
-
-			return;
-		}
-
-		const matches = url.match(regex).slice(1);
-		let result = {};
-		// TODO: have result start out as parsed params
-		
-		if (typeof resolvers[0] === 'number') {
-			if (req.method === 'GET') {
-				// TODO: test this
-				send(res, `Invalid get: ${url}`);
 				return;
 			}
 
-			// read incoming post
-			const limit = resolvers.shift();
-			const body = await receive(req, limit);
-			result = Object.assign(result, body);
-		} else if (req.method === 'POST') {
-			// TODO: test this
-			send(res, `Invalid post: ${url}`);
-			return;
-		}
-		
-		if (Array.isArray(resolvers[0])) {
-			// give names to matches
-			const names = resolvers.shift();
-			const entries = names.map((name, i) => [name, matches[i]]);
-			result = Object.fromEntries(entries);
-		}
+			const matches = path.match(regex).slice(1);
+			let result = parse(query);
+			
+			if (typeof resolvers[0] === 'number') {
+				// TODO: test this
+				if (req.method === 'GET') {
+					throw new Error(`Invalid get: ${path}`);
+				}
 
-		for (const resolver of resolvers) {
-			switch (typeof resolver) {
-				case 'function': {
-					// process custom callback
-					result = resolver(result, req, res);
-					continue
-				}
-				case 'string': {
-					// load and hydrate stew layout
-					const [, path, hash] = resolver.match(/^(.*?)(?:#(.*))?$/);
-					let layout = require(`${folder}/${path.replace(/^\/+/, '')}`);
-					if (hash) layout = layout[hash];
-					layout = await hydrateLayout(layout, result, converter);
-					const fragment = stew('', layout);
-					result = String(fragment);
-					continue;
-				}
+				// read incoming post
+				const limit = resolvers.shift();
+				const body = await receive(req, limit);
+				result = Object.assign(result, body);
+			} else if (req.method === 'POST') {
+				// TODO: test this
+				throw new Error(`Invalid post: ${path}`);
 			}
 			
-			// unrecognized resolver type
-			send(res, `Invalid route resolver: ${url}`);
-			return;
-		}
-
-		switch (typeof result) {
-			case 'string': {
-				send(res, result, 'html');
-				return;
+			if (Array.isArray(resolvers[0])) {
+				// give names to matches
+				const names = resolvers.shift();
+				const entries = names.map((name, i) => [name, matches[i]]);
+				result = Object.fromEntries(entries);
 			}
-			case 'object': {
-				try {
+
+			for (const resolver of resolvers) {
+				switch (typeof resolver) {
+					case 'function': {
+						// process custom callback
+						result = resolver(result, req, res);
+						continue
+					}
+					case 'string': {
+						// load and hydrate stew layout
+						const [, path, hash] = resolver.match(/^\/?(.*?)(?:#(.*))?$/);
+						let layout = require(`${folder}/${path}`);
+						if (hash) layout = layout[hash];
+						const promises = [];
+						layout = hydrateLayout(layout, result, converter, promises);
+						await Promise.all(promises);
+						const fragment = stew('', layout);
+						result = String(fragment);
+						continue;
+					}
+				}
+				
+				// unrecognized resolver type
+				throw new Error(`Invalid route resolver: ${path}`);
+			}
+
+			switch (typeof result) {
+				case 'string': {
+					send(res, result, 'html');
+					return;
+				}
+				case 'object': {
 					result = JSON.stringify(result);
 					send(res, result, 'json');
-				} catch (e) {
-					send(res, `Invalid data format: ${url}`);
+					return;
 				}
-
-				return;
 			}
+		} catch (err) {
+			onerror?.(err, req, res);
 		}
 	}).listen(port, err => console.log(`server is listening on ${port}`));
 
