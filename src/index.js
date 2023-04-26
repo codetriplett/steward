@@ -27,6 +27,7 @@ import stew from '@triplett/stew';
 import { send, receive, file, parse } from './transfer';
 
 export function hydrateLayout (layout, params, converter, promises) {
+	// process non-object types
 	if (typeof layout !== 'object') {
 		return layout;
 	} else if (Array.isArray(layout)) {
@@ -37,7 +38,13 @@ export function hydrateLayout (layout, params, converter, promises) {
 	
 	// create new object to set toString to
 	const object = {};
-	const promise = Promise.resolve(converter(layout, params)).then(string => object.toString = () => string);
+
+	// convert object and set its result as string
+	const promise = Promise.resolve(converter(layout, params)).then(string => {
+		object.toString = () => string;
+	});
+
+	// add promise to list to await and return object
 	promises.push(promise);
 	return object;
 }
@@ -114,9 +121,18 @@ export default function (folder, port, onerror, ...routes) {
 						const [, path, hash] = resolver.match(/^\/?(.*?)(?:#(.*))?$/);
 						let layout = require(`${folder}/${path}`);
 						if (hash) layout = layout[hash];
-						const promises = [];
-						layout = hydrateLayout(layout, result, converter, promises);
-						await Promise.all(promises);
+
+						if (typeof layout === 'function') {
+							// call custom layout creator
+							layout = layout(result);
+						} else {
+							// call basic layout creator
+							const promises = [];
+							layout = hydrateLayout(layout, result, converter, promises);
+							await Promise.all(promises);
+						}
+
+						// render layout
 						const fragment = stew('', layout);
 						result = String(fragment);
 						continue;

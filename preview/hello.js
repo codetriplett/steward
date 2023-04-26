@@ -1,4 +1,4 @@
 module.exports = {
-	fetch: ({ region }) => ({ sentiment: 'Hello', region }),
+	fetch: ({ sentiment, region }) => ({ sentiment: sentiment || 'Hello', region }),
 	render: ({ sentiment, region }) => ['p', null, `${sentiment} ${region}`],
 };

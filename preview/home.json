@@ -4,6 +4,10 @@
 		["title", null, "Home"]
 	],
 	["body", { "lang": "en" },
-		{ "url": "/:name?region=World" }
+		{
+			"type": "hello",
+			"params": ["sentiment"],
+			"options": { "region": "World" }
+		}
 	]
 ]
