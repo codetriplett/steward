@@ -4,7 +4,7 @@ Object.assign(steward, {
 	types,
 	send,
 	parse,
-	stew
+	stew,
 });
 
 if (typeof window === 'object') {

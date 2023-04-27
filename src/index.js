@@ -35,13 +35,13 @@ export function hydrateLayout (layout, params, converter, promises) {
 			return hydrateLayout(child, params, converter, promises);
 		})];
 	}
-	
+
 	// create new object to set toString to
 	const object = {};
 
 	// convert object and set its result as string
 	const promise = Promise.resolve(converter(layout, params)).then(string => {
-		object.toString = () => string;
+		object.toString = () => typeof string === 'string' ? string : '';
 	});
 
 	// add promise to list to await and return object
@@ -86,7 +86,7 @@ export default function (folder, port, onerror, ...routes) {
 
 			const matches = path.match(regex).slice(1);
 			let result = parse(query);
-			
+
 			if (typeof resolvers[0] === 'number') {
 				// TODO: test this
 				if (req.method === 'GET') {
@@ -101,12 +101,12 @@ export default function (folder, port, onerror, ...routes) {
 				// TODO: test this
 				throw new Error(`Invalid post: ${path}`);
 			}
-			
+
 			if (Array.isArray(resolvers[0])) {
 				// give names to matches
 				const names = resolvers.shift();
 				const entries = names.map((name, i) => [name, matches[i]]);
-				result = Object.fromEntries(entries);
+				result = Object.assign(result, Object.fromEntries(entries));
 			}
 
 			for (const resolver of resolvers) {
@@ -138,21 +138,28 @@ export default function (folder, port, onerror, ...routes) {
 						continue;
 					}
 				}
-				
+
 				// unrecognized resolver type
 				throw new Error(`Invalid route resolver: ${path}`);
 			}
 
 			switch (typeof result) {
 				case 'string': {
+					// send back HTML
 					send(res, result, 'html');
 					return;
 				}
 				case 'object': {
+					// send back JSON
 					result = JSON.stringify(result);
 					send(res, result, 'json');
 					return;
 				}
+			}
+
+			if (result !== undefined) {
+				// send back value as text
+				send(res, String(result), 'txt');
 			}
 		} catch (err) {
 			onerror?.(err, req, res);

@@ -18,7 +18,7 @@ async function getLayout (type, params) {
 
 const { read } = steward(__dirname, 8080, async (err, req, res) => {
 	const content = await read('404.html');
-	send(res, content, 'html');
+	send(res, content, 'html', 404);
 }, ({ type, params = [], options = {} }, vars) => {
 	const names = new Set([...params, Object.keys(options)]);
 	const values = { ...vars, ...options };
@@ -31,11 +31,13 @@ const { read } = steward(__dirname, 8080, async (err, req, res) => {
 	[/^data\/(.*?)\/(.*)/, ['first', 'rest'], params => {
 		return params; // return JSON
 	}],
-	[/^alternate\/(.*)/, ['value'], (params, req, res) => {
+	[/^alternate\/?(.+)?/, ['region'], (params, req, res) => {
 		// custom treatment (use res instead of returning JSON)
+		const { region = 'Earth' } = params;
+		send(res, `Greetings ${region}`);
 	}],
-	// POST with max payload size
-	[/^post\/(.*)/, 1024, ['value'], (body, req, res) => {
+	[/^post\/?(.*)/, 1024, ['value'], (body, req, res) => {
 		// custom treatment (use res instead of returning JSON)
+		return body;
 	}],
 );

@@ -1,50 +1,83 @@
 # Steward
-A companion library for @triplett/stew. It takes care of all the work needed to set up a basic node server. Features such as routing, request types, response headers and file management are greatly simplified.
+A companion library for @triplett/stew that simplifies setting up a view server.
 
-## Server
+## Routes
+In addition to rendering pages from layouts written in JSON, it can handle data requests, POST requests, or any other custom handling of the request you need. Routes are defined with regex patterns with a chain of middleware options after each one.
 
 ```js
-import $$ from '@triplett/steward';
+import steward from '@triplett/steward';
+const { send } = steward;
 
-$$(8080, [
-	// must include an absolute path to the local file that contains the stew library
-	// the value after # serves as an alias for the stew library on the client
-	`${__dirname}/stew.min.js#$`,
-	// any additional resources you want to allow access to can be included here
-	// all paths are relative to the folder that contains the stew library above
-	// a custom route can be created to return resources as well
-	'component.js'
-], (props, file) => {
-	// this function will be used to resolve requests to the home page of your site
-	// the first parameter holds the values of query params in the url
-	// the body of any POST or PUT requests will be included on the '' key of the first parameter
-	// the file function can be used to read the contents of any files in your project
-
-	// if a function is returned it will be used to generate HTML
-	// a render function will be passed to that function help set up stew components
-	// pass in the path to the file to have it server side render
-	// you can also (or instead) include a value after # to have it client side render
-	// the scripts for the stew library and the rendered components will be included automatically
-	return render => `<!doctype html>
-		<html lang="en">
-			<head>
-				<title>${title}</title>
-			</head>
-			<body>
-				${render({ '': 'component.js#Component', ...props })}
-			</body>
-		</html>
-	`;
-})(/^(page|api)\/(.*?)$/, (props, mode, path, file) => {
-	// additional routes can be defined in a chain off the original call
-	// custom regex will be used to match the incoming url starting from the bottom of the list
-	// grouped matches will be included as params between props and the file function
-
-	// returning undefined will result in a 404
-	// if no extension was included, it will return the 404.html file (if found) relative to your root directory
-
-	// returning anything other than a function will be returned with the proper type based on its extension
-	// if no extension was included in the url, it will be returned as JSON
-	return { key: 'value' };
-});
+const { read } = steward(__dirname, 8080, (err, req, res) => {
+	// handles errors
+	const content = read('404.html'); // read 404.html from __dirname (current folder)
+	send(res, content, 'html'); // send back as HTML
+}
+	[/^static\//], // treat anything starting with /static/ as a static asset
+	[/^$/, 'home.json'], // render layout in home.json for home page
+	[/^custom\//, (params, req, res) => {
+		// params is an object of the parsed query params
+		return data; // returns as HTML if a string or JSON if an object
+		// can also use send() in place of return to customize what you return
+	}],
+	[/^article\/(.*)\//, ['name'], (params, req, res) => {
+		// capture groups can be used to use a part of the url as a param
+		const { name } = params;
+		// props from body will overwrite any props of the same name from query params
+	}],
+	[/^post\//, 1024, (body, req, res) => {
+		// props from body will overwrite any props of the same name from query params
+	}],
+);
 ```
+
+The first leading and trailing slash will be removed from the URL, along with the query params. The query params are automatically parsed and passed to the next function that follows the regex.
+
+## Page Layouts
+Layouts follow the structure expected by @triplett/stew, except since they are written in JSON, functions aren't allowed. However, another function can be included after your error handling function in the example above to customize how you convert objects into HTML. For example, you can include objects in your layout that reference another component. This is also where you would set up caching for fragments of your layout.
+
+```js
+
+// example of JSON used for page layout
+/*
+["html", null,
+	["head", null,
+		["title", null, "Page Title"]
+	],
+	["body", null,
+		{ "type": "example", "props": { "key": "value" } }
+	]
+]
+*/
+
+steward(__dirname, 8080, (err, req, res) => {
+	// handles errors
+	...
+}, (object, params) => {
+	// an example of a custom converter of objects
+	const { type, props } = object;
+	return retrieveOrRender(type, props);
+	// 
+},
+	...
+);
+```
+
+## Helpers
+The API for this library is very light. Besides the call to set up the server, there are just a few helper functions available. Here is how to access them.
+
+### send
+Accessed directly off steward function, this simplifies how you respond to the request. It needs the res object from the request, which is passed as a param in your route functions. 'type' will default to 'txt' if not provided, and 'status' will default to 200;
+
+```js
+steward.send(res, content, type, status);
+```
+
+### types
+Accessed directly off steward function, this is the mapping of extensions to their MIME types. You can add your own to this if they are missing and they will be processed by the static asset routes or your own calls to send() if you pass the new type string. The key of each entry matches the file extension.
+
+### read
+Accessed from the object returned by your steward call. Pass in a file path to return a Promise that resolves with the content of that file. Paths are relative to the directory you provided when setting up the server.
+
+### write
+Accessed from the object returned by your steward call. Pass in a file path and content to return a Promise that resolves once the files has been created or updated. Paths are relative to the directory you provided when setting up the server.

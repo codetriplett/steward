@@ -11,20 +11,15 @@ export const types = {
 	jpg: 'image/jpeg',
 	png: 'image/png',
 	svg: 'image/svg+xml',
-	ico: 'image/x-icon'
+	ico: 'image/x-icon',
 };
 
 export function send (res, content, type = 'txt', status = 200) {
 	const utf8 = !/^image\/(?!svg)/.test(type);
 
-	if (!(content instanceof Buffer) && typeof content !== 'string') {
-		status = 404;
-		content = 'Not found';
-	}
-
 	res.writeHead(status, {
 		'Content-Length': Buffer.byteLength(content),
-		'Content-Type': `${types[type]}${utf8 ? '; charset=utf-8' : ''}`
+		'Content-Type': `${types[type]}${utf8 ? '; charset=utf-8' : ''}`,
 	});
 
 	res.end(content);
@@ -64,9 +59,11 @@ export function file (path, callback, ...rest) {
 export function parse (query = '', outerSep = '&', innerSep = '=') {
 	const object = {};
 
-	for (const string of query.split(outerSep)) {
-		const [name, ...values] = string.split(innerSep);
-		object[name] = values.join(innerSep);
+	if (query) {
+		for (const string of query.split(outerSep)) {
+			const [name, ...values] = string.split(innerSep);
+			object[name] = values.join(innerSep);
+		}
 	}
 
 	return object;
