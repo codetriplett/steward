@@ -1,0 +1,13 @@
+["", null,
+	["!DOCTYPE", { "html": true }],
+	["head", null,
+		["title", null, "Home"]
+	],
+	["body", { "lang": "en" },
+		{
+			"type": "hello",
+			"params": ["sentiment"],
+			"options": { "region": "World" }
+		}
+	]
+]
