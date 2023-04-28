@@ -64,6 +64,14 @@ export default function (folder, port, onerror, ...routes) {
 		return file(fullPath, writeFile, content);
 	}
 
+	// add route for stew files
+	routes.unshift([/^stew\.min\.m?js(\.LEGAL\.txt)?/, async (params, req, res) => {
+		const path = require.resolve('@triplett/stew').replace(/stew\.min\.js$/, req.url);
+		const [, extension] = path.match(/^.*?(?:\.([^./]*))?$/);
+		const content = await file(path, readFile);
+		send(res, content, extension);
+	}]);
+
 	createServer(async (req, res) => {
 		try {
 			const [, path, query] = req.url.match(/^\/?(.*?)\/?(?:\?(.*))?$/);
@@ -73,12 +81,13 @@ export default function (folder, port, onerror, ...routes) {
 
 			if (!resolvers.length) {
 				// return static asset
+				const [, extension] = path.match(/^.*?(?:\.([^./]*))?$/);
+
 				try {
-					const [, extension] = path.match(/^.*?(?:\.([^./]*))?$/);
 					const content = await read(path);
 					send(res, content, extension);
 				} catch (e) {
-					send(res, 'File not found');
+					send(res, 'File not found', extension, 404);
 				}
 
 				return;
@@ -113,7 +122,7 @@ export default function (folder, port, onerror, ...routes) {
 				switch (typeof resolver) {
 					case 'function': {
 						// process custom callback
-						result = resolver(result, req, res);
+						result = await resolver(result, req, res);
 						continue
 					}
 					case 'string': {
@@ -130,6 +139,11 @@ export default function (folder, port, onerror, ...routes) {
 							const promises = [];
 							layout = hydrateLayout(layout, result, converter, promises);
 							await Promise.all(promises);
+						}
+
+						// add doctype if html tag stands alone
+						if (Array.isArray(layout) && layout[0].toLowerCase() === 'html') {
+							layout = ['', null, ['!DOCTYPE', { html: true }], layout];
 						}
 
 						// render layout

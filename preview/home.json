@@ -1,7 +1,8 @@
-["", null,
-	["!DOCTYPE", { "html": true }],
+["html", null,
 	["head", null,
-		["title", null, "Home"]
+		["title", null, "Home"],
+		["script", { "src": "/stew.min.js" }],
+		["script", { "src": "/static/steward.js" }]
 	],
 	["body", { "lang": "en" },
 		{
