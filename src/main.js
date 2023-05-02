@@ -1,8 +1,9 @@
-import steward, { types, send, parse, stew } from './module';
+import steward, { types, send, receive, parse, stew } from './module';
 
 Object.assign(steward, {
 	types,
 	send,
+	receive,
 	parse,
 	stew,
 });

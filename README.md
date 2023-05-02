@@ -35,6 +35,17 @@ const { read } = steward(__dirname, 8080, (err, req, res) => {
 
 The first leading and trailing slash will be removed from the URL, along with the query params. The query params are automatically parsed and passed to the next middleware function that follows the regex. Multiple middleware functions can be set and each will wait for the return value of the previous one to resolve before being called, but only if the resolved value is not undefined. Those returned values are passed to the next as the new params object, but could be any data type.
 
+### stew
+The stew code, and its licenses, are accessible from your server without you having to set up routes for them. They can be accessed from the following paths and will be needed to render and hydrate content on the client.
+
+```
+/stew.min.js
+/stew.min.mjs
+
+/stew.min.js.LEGAL.txt
+/stew.min.mjs.LEGAL.txt
+```
+
 ## Page Layouts
 Layouts follow the structure expected by @triplett/stew except, since they are written in JSON, functions aren't allowed. Custom logic can be implemented through the use of a custom converter function that will act on any non-array object it finds. This is an optional function that can be set after your error handling function, and should return a string that represents that portion of your layout. These strings will be inserted into your layout when it renders as-is, instead of escaping the characters it normally would.
 
@@ -82,6 +93,14 @@ Accessed directly off steward function, this simplifies how you receive request 
 const data = await steward.receive(req, limit);
 ```
 
+### parse
+Accessed directly off steward function, this simply splits a string using two delimiters. These delimiters default to '&' and '=' to parse query strings. The result will be an object.
+
+```js
+const props = await steward.parse(string); // parse query string
+const props = await steward.parse(string, ' ', ':'); // parse custom format
+```
+
 ### render
 Accessed directly off steward function, this allows you to render a layout within your middleware. The effect is similar to how layouts are rendered when set directly as strings in your route, but also allows you to pass a custom converter to override the common one for your server.
 
@@ -90,13 +109,8 @@ const html = await steward.render(layout, params); // use common converter
 const html = await steward.render(layout, params, converter); // use custom converter
 ```
 
-### render
-Accessed directly off steward function, this simply splits a string using two delimiters. These delimiters default to '&' and '=' to parse query strings. The result will be an object.
-
-```js
-const props = await steward.parse(string); // parse query string
-const props = await steward.parse(string, ' ', ':'); // parse custom format
-```
+### stew
+Accessed directly off steward function, this references the current @triplett/stew module used to render your layouts.
 
 ### types
 Accessed directly off steward function, this is the mapping of extensions to their MIME types. You can add your own to this if they are missing and they will be processed by the static asset routes or your own calls to send(). The key of each entry should match the file extension, without the dot.
