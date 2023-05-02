@@ -50,8 +50,11 @@ export function hydrateLayout (layout, params, converter, promises) {
 }
 
 export default function (folder, port, onerror, ...routes) {
-	if (typeof folder !== 'string' || typeof port !== 'number') return;
-	const converter = typeof routes[0] === 'function' ? routes.shift() : () => () => '';
+	if (typeof folder !== 'string' || !port || isNaN(port)) {
+		throw new Error('Invalid folder or port');
+	}
+
+	const defaultConverter = typeof routes[0] === 'function' ? routes.shift() : () => () => '';
 	folder = folder.replace(/\/+$/, '');
 
 	function read (path) {
@@ -64,6 +67,32 @@ export default function (folder, port, onerror, ...routes) {
 		return file(fullPath, writeFile, content);
 	}
 
+	async function render (template, params = {}, converter = defaultConverter) {
+		// load and hydrate stew layout
+		const [, path, hash] = template.match(/^\/?(.*?)(?:#(.*))?$/);
+		let layout = require(`${folder}/${path}`);
+		if (hash) layout = layout[hash];
+
+		if (typeof layout === 'function') {
+			// call custom layout creator
+			layout = layout(params);
+		} else {
+			// call basic layout creator
+			const promises = [];
+			layout = hydrateLayout(layout, params, converter, promises);
+			await Promise.all(promises);
+		}
+
+		// add doctype if html tag stands alone
+		if (Array.isArray(layout) && layout[0].toLowerCase() === 'html') {
+			layout = ['', null, ['!DOCTYPE', { html: true }], layout];
+		}
+
+		// render layout
+		const fragment = stew('', layout);
+		return String(fragment);
+	}
+
 	// add route for stew files
 	routes.unshift([/^stew\.min\.m?js(\.LEGAL\.txt)?/, async (params, req, res) => {
 		const path = require.resolve('@triplett/stew').replace(/stew\.min\.js$/, req.url);
@@ -72,9 +101,10 @@ export default function (folder, port, onerror, ...routes) {
 		send(res, content, extension);
 	}]);
 
-	createServer(async (req, res) => {
+	async function resolve (req, res) {
 		try {
-			const [, path, query] = req.url.match(/^\/?(.*?)\/?(?:\?(.*))?$/);
+			const { url, method } = req;
+			const [, path, query] = url.match(/^\/?(.*?)\/?(?:\?(.*))?$/);
 			const route = routes.find(([regex]) => regex.test(path));
 			if (!route) throw new Error(`Route not found: ${path}`);
 			const [regex, ...resolvers] = route;
@@ -98,17 +128,17 @@ export default function (folder, port, onerror, ...routes) {
 
 			if (typeof resolvers[0] === 'number') {
 				// TODO: test this
-				if (req.method === 'GET') {
-					throw new Error(`Invalid get: ${path}`);
+				if (method !== 'POST') {
+					throw new Error(`Invalid method: [${method}] ${path}`);
 				}
 
 				// read incoming post
 				const limit = resolvers.shift();
 				const body = await receive(req, limit);
 				result = Object.assign(result, body);
-			} else if (req.method === 'POST') {
+			} else if (method === 'POST') {
 				// TODO: test this
-				throw new Error(`Invalid post: ${path}`);
+				throw new Error(`Invalid method: [${method}] ${path}`);
 			}
 
 			if (Array.isArray(resolvers[0])) {
@@ -118,43 +148,22 @@ export default function (folder, port, onerror, ...routes) {
 				result = Object.assign(result, Object.fromEntries(entries));
 			}
 
-			for (const resolver of resolvers) {
+			for (const [i, resolver] of resolvers.entries()) {
 				switch (typeof resolver) {
 					case 'function': {
 						// process custom callback
 						result = await resolver(result, req, res);
-						continue
+						if (result === undefined) break;
+						continue;
 					}
 					case 'string': {
-						// load and hydrate stew layout
-						const [, path, hash] = resolver.match(/^\/?(.*?)(?:#(.*))?$/);
-						let layout = require(`${folder}/${path}`);
-						if (hash) layout = layout[hash];
-
-						if (typeof layout === 'function') {
-							// call custom layout creator
-							layout = layout(result);
-						} else {
-							// call basic layout creator
-							const promises = [];
-							layout = hydrateLayout(layout, result, converter, promises);
-							await Promise.all(promises);
-						}
-
-						// add doctype if html tag stands alone
-						if (Array.isArray(layout) && layout[0].toLowerCase() === 'html') {
-							layout = ['', null, ['!DOCTYPE', { html: true }], layout];
-						}
-
-						// render layout
-						const fragment = stew('', layout);
-						result = String(fragment);
+						result = await render(resolver, result);
 						continue;
 					}
 				}
 
 				// unrecognized resolver type
-				throw new Error(`Invalid route resolver: ${path}`);
+				throw new Error(`Invalid resolver: [${i}] ${path}`);
 			}
 
 			switch (typeof result) {
@@ -178,7 +187,44 @@ export default function (folder, port, onerror, ...routes) {
 		} catch (err) {
 			onerror?.(err, req, res);
 		}
-	}).listen(port, err => console.log(`server is listening on ${port}`));
+	}
 
-	return { read, write };
+	function simulate (url, method, content) {
+		return new Promise(resolve => {
+			function on (event, callback) {
+				if (event === 'data') callback(content);
+				else if (event === 'end') callback();
+			}
+
+			const connection = { destroy: () => isError = true };
+			const req = { url, method, connection, on };
+			let isError = false;
+
+			const res = {
+				writeHead: status => isError = status >= 400,
+				end: resolve,
+			};
+
+			resolve(req, res);
+		});
+	}
+
+	function get (url) {
+		return simulate(url, 'GET');
+	}
+
+	function post (url, content) {
+		return simulate(url, 'POST', content);
+	}
+
+	function put (url, content) {
+		return simulate(url, 'PUT', content);
+	}
+
+	function del (url, content) {
+		return simulate(url, 'DELETE', content);
+	}
+
+	createServer(resolve).listen(port, err => console.log(`server is listening on ${port}`));
+	return { read, write, render, get, post, put, del };
 }

@@ -17,6 +17,7 @@ async function getLayout (type, params) {
 }
 
 const { read } = steward(__dirname, 8080, async (err, req, res) => {
+	// console.log(err);
 	const content = await read('404.html');
 	send(res, content, 'html', 404);
 }, ({ type, params = [], options = {} }, vars) => {

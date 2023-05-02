@@ -36,7 +36,7 @@ export function receive (req, limit = 1e6) {
 
 		req.on('end', () => {
 			try {
-				resolve(JSON.parse(body));
+				resolve(limit < 0 ? body : JSON.parse(body));
 			} catch (err) {
 				reject();
 			}
