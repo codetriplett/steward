@@ -148,12 +148,13 @@ export default function (folder, port, onerror, ...routes) {
 				result = Object.assign(result, Object.fromEntries(entries));
 			}
 
+			resolverLoop:
 			for (const [i, resolver] of resolvers.entries()) {
 				switch (typeof resolver) {
 					case 'function': {
 						// process custom callback
 						result = await resolver(result, req, res);
-						if (result === undefined) break;
+						if (result === undefined) break resolverLoop;
 						continue;
 					}
 					case 'string': {
