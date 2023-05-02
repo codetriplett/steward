@@ -1,6 +1,6 @@
 {
 	"name": "@triplett/steward",
-	"version": "2.1.1",
+	"version": "2.2.0",
 	"description": "Quick view server setup using @triplett/stew.",
 	"author": "triplett",
 	"license": "MIT",
