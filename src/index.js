@@ -26,29 +26,6 @@ import { readFile, writeFile } from 'fs';
 import stew from '@triplett/stew';
 import { send, receive, file, parse } from './transfer';
 
-export function hydrateLayout (layout, params, converter, promises) {
-	// process non-object types
-	if (typeof layout !== 'object') {
-		return layout;
-	} else if (Array.isArray(layout)) {
-		return [...layout.slice(0, 2), ...layout.slice(2).map(child => {
-			return hydrateLayout(child, params, converter, promises);
-		})];
-	}
-
-	// create new object to set toString to
-	const object = {};
-
-	// convert object and set its result as string
-	const promise = Promise.resolve(converter(layout, params)).then(string => {
-		object.toString = () => typeof string === 'string' ? string : '';
-	});
-
-	// add promise to list to await and return object
-	promises.push(promise);
-	return object;
-}
-
 export default function (folder, port, onerror, ...routes) {
 	if (typeof folder !== 'string' || !port || isNaN(port)) {
 		throw new Error('Invalid folder or port');
@@ -68,29 +45,19 @@ export default function (folder, port, onerror, ...routes) {
 	}
 
 	async function render (template, params = {}, converter = defaultConverter) {
-		// load and hydrate stew layout
-		const [, path, hash] = template.match(/^\/?(.*?)(?:#(.*))?$/);
-		let layout = require(`${folder}/${path}`);
-		if (hash) layout = layout[hash];
+		let layout = template;
 
-		if (typeof layout === 'function') {
-			// call custom layout creator
-			layout = layout(params);
-		} else {
-			// call basic layout creator
-			const promises = [];
-			layout = hydrateLayout(layout, params, converter, promises);
-			await Promise.all(promises);
+		if (typeof template === 'string') {
+			// load and hydrate stew layout
+			const [, path, hash] = template.match(/^\/?(.*?)(?:#(.*))?$/);
+			layout = require(`${folder}/${path}`);
+			if (hash) layout = layout[hash];
 		}
 
-		// add doctype if html tag stands alone
-		if (Array.isArray(layout) && layout[0].toLowerCase() === 'html') {
-			layout = ['', null, ['!DOCTYPE', { html: true }], layout];
-		}
-
-		// render layout
-		const fragment = stew('', layout);
-		return String(fragment);
+		// resolve components and render layout
+		const fragment = await stew('', layout, converter, params);
+		const html = String(fragment);
+		return /\<html[^\>]*\>/.test(html) ? `<!DOCTYPE html>${html}` : html;
 	}
 
 	// add route for stew files
